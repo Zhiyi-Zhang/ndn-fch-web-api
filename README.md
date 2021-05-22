@@ -25,7 +25,7 @@ FCH_HUB_PATH=. uwsgi --http 127.0.0.1:5000 --module wsgi-app
 
 ## RESTful APIs
 
-### Get closest hubs
+### 1. Get closest hubs
 
 #### GET Request
 
@@ -53,7 +53,7 @@ Example:
 suns.cs.ucla.edu,example1.cs.ucla.edu,exmaple2.cs.ucla.edu
 ```
 
-### Update hub information
+### 2. Update hub information
 
 #### PUT Request
 
@@ -79,3 +79,8 @@ Example:
 ]
 ```
 The position value follows GeoJSON, namely, `[lontitude, latitude]`.
+
+
+#### Response
+
+Success 200
