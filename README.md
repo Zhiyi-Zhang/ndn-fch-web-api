@@ -1,5 +1,16 @@
 # NDN Find Closest Hub (FCH) RESTful APIs
 
+## Why we need this?
+
+Find the closest hub near you to connect to the NDN testbed.
+
+Compared with the existing FCH:
+* The existing version uses KNN to decide the closest hubs but it can give wrong results when two coordinate points are remote in values but geographically close.
+E.g., (179, 0) and (-179, 0) are geographically close to each other but their numeric distance is large.
+* This FCH supports more types, including `udp`, `wss` for WebSocket, and `http3` for HTTP/3.
+* This FCH allows requester to specify IPv4 and IPv6 at the time of query.
+* This FCH allows real-time update of hub information with RESTful API `/routers`.
+
 ## Deployment with uWSGI
 
 1 Create python virtual environment and activate it.
@@ -30,6 +41,7 @@ FCH_HUB_PATH=. uwsgi --http 127.0.0.1:5000 --module wsgi-app
 #### GET Request
 
 HTTP GET request containing the query parameters.
+The URL is `/`.
 
 Example:
 ```ascii
@@ -58,9 +70,11 @@ suns.cs.ucla.edu,example1.cs.ucla.edu,exmaple2.cs.ucla.edu
 #### PUT Request
 
 HTTP PUT request containing a JSON format list of hub information.
+The URL is `/routers`.
 
 Example:
 ```ascii
+PUT /routers
 [
   {
     "id": "ucla",
