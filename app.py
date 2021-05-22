@@ -43,9 +43,9 @@ def measure_distance(hub_json, requester_point, support_v4, support_v6, cap):
 # lon, lat: geo-coordinates, required
 @app.route("/", methods=['GET'])
 def get_closest_hub():
-    global router_list
-    if len(router_list) == 0:
-        abort(403)
+    local_router_list = router_list
+    if len(local_router_list) == 0:
+        abort(500)
 
     if "lat" not in request.args or "lon" not in request.args:
         abort(403)
@@ -74,13 +74,14 @@ def get_closest_hub():
         abort(403)
 
     cap = request.args.get("cap", "udp")
-    result = sorted(router_list, key=lambda x: measure_distance(x, requester_point, support_v4, support_v6, cap))[:k]
-    return ",".join(hub[cap] for hub in result if cap in hub)
+    for hub in local_router_list:
+        hub.update({"distance": measure_distance(hub, requester_point, support_v4, support_v6, cap)})
+    result = sorted(local_router_list, key=lambda x: x["distance"])[:k]
+    return ",".join(hub[cap] for hub in result if cap in hub and hub["distance"] != math.inf)
 
 
 @app.route("/routers", methods=['PUT'])
 def update_router_list():
     global router_list
     router_list = request.get_json()
-    print(router_list)
     return "success", 200
