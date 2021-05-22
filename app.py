@@ -1,9 +1,17 @@
 from flask import Flask, request, abort
 from geopy import distance
 import math
+import json
+import os
+import sys
 
 app = Flask(__name__)
 router_list = []
+hub_path = os.getenv("FCH_HUB_PATH")
+if not hub_path:
+    print("FCH_HUB_PATH is not specified for hub file storage")
+    sys.exit()
+hub_file_path = os.path.join(hub_path, "hubs.txt")
 
 
 def measure_distance(hub_json, requester_point, support_v4, support_v6, cap):
@@ -33,6 +41,12 @@ def measure_distance(hub_json, requester_point, support_v4, support_v6, cap):
     return distance.distance(requester_point, hub_point).kilometers
 
 
+def load_hubs_from_file():
+    global router_list
+    with open(hub_file_path) as hubs_file:
+        router_list = json.load(hubs_file)
+
+
 # Query: GET /?k=9&cap=wss&lon=-77&lat=39&ip=192.0.2.1
 # k: number of routers to return, default 1
 # cap: capability
@@ -43,9 +57,11 @@ def measure_distance(hub_json, requester_point, support_v4, support_v6, cap):
 # lon, lat: geo-coordinates, required
 @app.route("/", methods=['GET'])
 def get_closest_hub():
+    if len(router_list) == 0:
+        load_hubs_from_file()
+        if len(router_list) == 0:
+            abort(500)
     local_router_list = router_list
-    if len(local_router_list) == 0:
-        abort(500)
 
     if "lat" not in request.args or "lon" not in request.args:
         abort(403)
@@ -80,8 +96,12 @@ def get_closest_hub():
     return ",".join(hub[cap] for hub in result if cap in hub and hub["distance"] != math.inf)
 
 
+# update the hub list
+# will write the hub list into a file called hubs.txt under environment var FCH_HUB_PATH
 @app.route("/routers", methods=['PUT'])
 def update_router_list():
     global router_list
     router_list = request.get_json()
+    with open(hub_file_path, 'w') as hubs_file:
+        json.dump(router_list, hubs_file)
     return "success", 200
