@@ -105,7 +105,3 @@ def update_router_list():
     with open(hub_file_path, 'w') as hubs_file:
         json.dump(router_list, hubs_file)
     return "success", 200
-
-
-if __name__ == '__main__':
-    app.run()
