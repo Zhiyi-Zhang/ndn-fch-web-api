@@ -1,13 +1,12 @@
 from flask import Flask, request, abort
 from geopy import distance
-from enum import Enum
+import math
 
 app = Flask(__name__)
 router_list = []
 
 
 def measure_distance(hub_json, requester_point, support_v4, support_v6, cap):
-    hub_v4 = hub_v6 = available = False
     try:
         hub_v4 = hub_json['ipv4']
     except KeyError:
@@ -17,6 +16,7 @@ def measure_distance(hub_json, requester_point, support_v4, support_v6, cap):
     except KeyError:
         hub_v6 = False
 
+    available = False
     if support_v4 is True and hub_v4 is True:
         available = True
     if support_v6 is True and hub_v6 is True:
@@ -24,11 +24,11 @@ def measure_distance(hub_json, requester_point, support_v4, support_v6, cap):
 
     # 7590 is the longest distance on earth
     if not available:
-        return 7590
+        return math.inf
     try:
         hub_cap = hub_json[cap]
     except KeyError:
-        return 7590
+        return math.inf
     hub_point = (float(hub_json['position'][1]), float(hub_json['position'][0]))
     return distance.distance(requester_point, hub_point).kilometers
 
@@ -59,15 +59,10 @@ def get_closest_hub():
         abort(403)
     requester_point = (lat, lon)
 
-    k = 1
     try:
-        k = int(request.args.get("k"))
+        k = max(1, int(request.args.get("k", "")))
     except ValueError:
         k = 1
-    if k < 1:
-        k = 1
-    elif k > 10:
-        k = 10
 
     support_v4 = False
     support_v6 = False
@@ -78,9 +73,10 @@ def get_closest_hub():
     if support_v4 is not True and support_v6 is not True:
         abort(403)
 
-    cap = request.args["cap"]
+    cap = request.args.get("cap", "udp")
     result = sorted(router_list, key=lambda x: measure_distance(x, requester_point, support_v4, support_v6, cap))[:k]
-    return ",".join(hub[cap] for hub in result)
+    return ",".join(hub[cap] for hub in result if cap in hub)
+
 
 @app.route("/routers", methods=['PUT'])
 def update_router_list():
