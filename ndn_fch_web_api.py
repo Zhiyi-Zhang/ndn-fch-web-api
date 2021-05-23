@@ -1,4 +1,4 @@
-from flask import Flask, request, abort
+from flask import Flask, request, abort, make_response
 from geopy import distance
 import math
 import json
@@ -93,7 +93,9 @@ def get_closest_hub():
     for hub in local_router_list:
         hub.update({"distance": measure_distance(hub, requester_point, support_v4, support_v6, cap)})
     result = sorted(local_router_list, key=lambda x: x["distance"])[:k]
-    return ",".join(hub[cap] for hub in result if cap in hub and hub["distance"] != math.inf)
+    response = make_response(",".join(hub[cap] for hub in result if cap in hub and hub["distance"] != math.inf), 200)
+    response.headers["Content-Type"] = "text/plain"
+    return response
 
 
 # update the hub list
